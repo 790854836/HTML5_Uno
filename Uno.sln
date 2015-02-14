@@ -1,0 +1,21 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{13D1ED8F-0A13-49FB-B0B0-24306F06C487}"
+	ProjectSection(SolutionItems) = preProject
+		js\base.js = js\base.js
+		js\forEach.js = js\forEach.js
+		index.html = index.html
+		js\unoGameClient.js = js\unoGameClient.js
+		js\unoGameServer.js = js\unoGameServer.js
+		js\unoGameShared.js = js\unoGameShared.js
+		js\vector2d.js = js\vector2d.js
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
