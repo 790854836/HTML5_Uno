@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-    <script src="p5/p5.js"></script>
+    <script src="js/p5.js"></script>
     <script src="js/base.js"></script>
     <script src="js/unoGameShared.js"></script>
     <script src="js/unoGameClient.js"></script>
@@ -26,12 +26,14 @@
         // Called when the document has been loaded and preload has been completed.
         function setup() {
             // Uno playfield initialization and general p5 setup
+            devicePixelScaling(false);
             createCanvas(1024, 768);
             smooth();
             frameRate(30);
             imageMode(CORNER);
             rectMode(CORNER);
             angleMode(RADIANS);
+            textAlign(CENTER, CENTER);
 
             unoGameServer = new UnoGameServer();
             unoGameClient = new UnoGameClient();
@@ -53,7 +55,7 @@
             unoGameClient.players[3] = new UnoOtherPlayer(UnoOtherPlayerLocations.right, 0, "Kut");
 
             // Hands of the players
-            unoGameClient.players[0].playerTurn = true;
+            unoGameClient.players[0].playerTurn = false;
             unoGameClient.players[0].hand = new Array(10);
             var thisPlayerHand = unoGameServer.takeCards(10);
             for (var i = 0; i < 10; ++i) {
@@ -70,7 +72,8 @@
         // Called every frame
         function draw() {
             background(255, 204, 0);
-            unoGameClient.drawGame();
+            unoGameClient.tick();
+            unoGameClient.draw();
         };
     </script>
 </body>

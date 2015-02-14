@@ -1,4 +1,5 @@
 /// <reference path="unoGameShared.js" />
+/// <reference path="p5.js" />
 
 // The images used in Uno
 var UnoCardsTileset = null;
@@ -139,6 +140,8 @@ var UnoCardClient = UnoCard.extend({
 var UnoThisPlayer = UnoPlayer.extend({
 	constructor: function (id, name) {
 		this.base(id, name);
+
+		this.animator = new UnoAnimator(this);
 	},
 	drawHand: function () {
 		// Some variables that will be used often
@@ -149,7 +152,7 @@ var UnoThisPlayer = UnoPlayer.extend({
 		// Determine the angle between the different cards
 		var handSize = this.hand.length;
 		var angleBetweenCards = UnoClientConfiguration.maxAngleBetweenCards;
-		if (handSize *  angleBetweenCards > UnoClientConfiguration.maxHandAngle) {
+		if (handSize * angleBetweenCards > UnoClientConfiguration.maxHandAngle) {
 			angleBetweenCards = UnoClientConfiguration.maxHandAngle / handSize;
 		}
 
@@ -159,14 +162,14 @@ var UnoThisPlayer = UnoPlayer.extend({
 		// Determine whether the player's cursor is over any of the cards
 		var cursorInRange = false;
 		var cursorAngle = 0;
-		var distance =  p5.Vector.sub(handCenter, mousePosition).mag();
+		var distance = p5.Vector.sub(handCenter, mousePosition).mag();
 		if ((mouseY < canvas.height)
 			&& (distance > (radius - UnoClientConfiguration.cardHeight / 2))
 			&& (distance < (radius + UnoClientConfiguration.cardHeight / 2))) {
-				cursorInRange = true;
+			cursorInRange = true;
 
-				var mouseCursorDirection = p5.Vector.sub(mousePosition, handCenter).normalize();
-				cursorAngle = acos(mouseCursorDirection.x);
+			var mouseCursorDirection = p5.Vector.sub(mousePosition, handCenter).normalize();
+			cursorAngle = acos(mouseCursorDirection.x);
 		}
 
 		// When its this player's turn, then get the card suggestions
@@ -219,15 +222,33 @@ var UnoThisPlayer = UnoPlayer.extend({
 		}
 
 		pop();
-	}
+	},
+	drawAvatar: function() {
+		push();
+		translate(canvas.width / 2, canvas.height - 20);
+		textSize(20);
+		fill(50);
+		text(this.name, 0, 0);
+		pop();
+	},
+	tick: function (deltaTime) {
+
+	},
+	draw: function () {
+		this.animator.draw();
+		this.drawHand();
+		this.drawAvatar();
+	},
+
+	animator: null
 });
 
 // Representation of other players
 var UnoOtherPlayer = UnoPlayer.extend({
 	constructor: function (side, id, name) {
 		this.base(id, name);
-
 		this.side = side;
+		this.animator = new UnoAnimator(this);
 	},
 	drawHand: function () {
 
@@ -282,6 +303,31 @@ var UnoOtherPlayer = UnoPlayer.extend({
 
 		pop();
 	},
+	drawAvatar: function () {
+
+		var center;
+		switch (this.side) {
+			case "none":
+				center = createVector(canvas.width / 2, canvas.height - 20, 0);
+				break;
+			case "top":
+				center = createVector(canvas.width / 2, 20, 0);
+				break;
+			case "left":
+				center = createVector(20, canvas.height / 2, 0);
+				break;
+			case "right":
+				center = createVector(canvas.width - 20, canvas.height / 2, 0);
+				break;
+		}
+
+		push();
+		translate(center.x, center.y);
+		textSize(20);
+		fill(50);
+		text(this.name, 0, 0);
+		pop();
+	},
 	addCard: function () {
 		this.hand += 1;
 	},
@@ -292,28 +338,68 @@ var UnoOtherPlayer = UnoPlayer.extend({
 			this.hand = 0;
 		}
 	},
+	tick: function(deltaTime) {
 
-	side: "none"
+	},
+	draw: function () {
+		this.animator.draw();
+		this.drawHand();
+		this.drawAvatar();
+		
+	},
+
+	side: "none",
+	animator: null
 });
 
 // Manages all Uno animations
 var UnoAnimator = Base.extend({
-	constructor: function () {
+	constructor: function (parent) {
+		this.parent = parent;
+	},
+	tick: function(deltaTime) {
 
-	}
+	},
+	draw: function() {
+
+	},
+
+	parent: null
 });
 
 var UnoHeapClient = UnoHeap.extend({
 	constructor: function () {
 		this.cards = new Array();
+		this.animator = new UnoAnimator(this);
 	},
-
 	addCard: function (card, color) {
 		this.base(card, color);
 		this.cards.push({ card: card.image, angle: radians(random(-45, 45)) });
 	},
+	tick: function(deltaTime) {
 
-	cards: null
+	},
+	draw: function () {
+
+		var heapLocation = createVector(canvas.width * 5 / 8, (canvas.height) / 2, 1);
+
+		push();
+		translate(heapLocation.x, heapLocation.y);
+		scale(1.2);
+
+		for (var i = 0; i < this.cards.length; ++i) {
+			push();
+			rotate(this.cards[i].angle);
+			translate(-UnoClientConfiguration.cardWidth / 2, -UnoClientConfiguration.cardHeight / 2);
+			image(this.cards[i].card);
+			pop();
+		}
+
+		pop();
+	},
+
+	cards: null,
+	animator: null
 });
 
 // Client which manages all communication with the server
@@ -327,20 +413,23 @@ var UnoGameClient = UnoGame.extend({
 	receivedMessage: function (message) {
 
 	},
-	drawGame: function () {
-
-		// TODO: draw background and fancy items
+	tick: function(deltaTime) {
+		for (var i = 0; i < this.players.length; ++i) {
+			this.players[i].tick(deltaTime);
+		}
+	},
+	draw: function () {
 		background(255, 204, 0);
 
 		for (var i = 0; i < this.players.length; ++i) {
-			this.players[i].drawHand();
+			this.players[i].draw();
 		}
 
-		var deckLocation = createVector(canvas.width / 4, (canvas.height - UnoDeckSprite.height) / 2, 1);
-		var heapLocation = createVector(canvas.width * 5 / 8, (canvas.height) / 2, 1);
+		this.heap.draw();
 
 		// Draw deck
 		push();
+		var deckLocation = createVector(canvas.width / 4, (canvas.height - UnoDeckSprite.height) / 2, 1);
 		translate(deckLocation.x, deckLocation.y);
 
 		if ((mouseX > deckLocation.x) && (mouseX < deckLocation.x + UnoDeckSprite.width)
@@ -351,20 +440,8 @@ var UnoGameClient = UnoGame.extend({
 		}
 		pop();
 
-		// Draw heap
-		push();
-		translate(heapLocation.x, heapLocation.y);
-		scale(1.2);
-
-		for (var i = 0; i < this.heap.cards.length; ++i) {
-			push();
-			rotate(this.heap.cards[i].angle);
-			translate(-UnoClientConfiguration.cardWidth / 2, -UnoClientConfiguration.cardHeight / 2);
-			image(this.heap.cards[i].card);
-			pop();
-		}
-
-		pop();
+		
+		
 	},
 
 	cards: null,

@@ -110,7 +110,7 @@ var UnoGameServer = UnoGame.extend({
 		this.base();
 		this.cards = UnoHeap();
 		this.deck = UnoDeck(true);
-		this.heap = new UnoHeapServer;
+		this.heap = new UnoHeap();
 	},
 	takeCards: function (amount) {
 
