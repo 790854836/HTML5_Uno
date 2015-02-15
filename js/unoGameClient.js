@@ -140,107 +140,136 @@ var UnoCardClient = UnoCard.extend({
 var UnoThisPlayer = UnoPlayer.extend({
 	constructor: function (id, name) {
 		this.base(id, name);
-
-		this.animator = new UnoAnimator(this);
+		this.animator = new UnoAnimator();
+		this.state = {};
+		this.resetState();
 	},
-	drawHand: function () {
-		// Some variables that will be used often
-		var radius = canvas.width / 4;
-		var mousePosition = createVector(mouseX, mouseY, 0);
-		var handCenter = createVector(canvas.width / 2, canvas.height + radius / 2, 0);
+	tick: function (deltaTime) {
 
-		// Determine the angle between the different cards
-		var handSize = this.hand.length;
-		var angleBetweenCards = UnoClientConfiguration.maxAngleBetweenCards;
-		if (handSize * angleBetweenCards > UnoClientConfiguration.maxHandAngle) {
-			angleBetweenCards = UnoClientConfiguration.maxHandAngle / handSize;
-		}
+		// Reset the state, check where the cursor is
+		this.resetState();
 
-		// The angle used to rotate the system to the left-most card
-		var startAngle = (angleBetweenCards * ((handSize - 1) / 2 + 1));
+		var that = this;
+		var checkCursorOverHand = function () {
 
-		// Determine whether the player's cursor is over any of the cards
-		var cursorInRange = false;
-		var cursorAngle = 0;
-		var distance = p5.Vector.sub(handCenter, mousePosition).mag();
-		if ((mouseY < canvas.height)
-			&& (distance > (radius - UnoClientConfiguration.cardHeight / 2))
-			&& (distance < (radius + UnoClientConfiguration.cardHeight / 2))) {
-			cursorInRange = true;
+			// Some variables that will be used often
+			var radius = canvas.width / 4;
+			var mousePosition = createVector(mouseX, mouseY, 0);
+			var handCenter = createVector(canvas.width / 2, canvas.height + radius / 2, 0);
 
-			var mouseCursorDirection = p5.Vector.sub(mousePosition, handCenter).normalize();
-			cursorAngle = acos(mouseCursorDirection.x);
-		}
+			// Determine the angle between the different cards
+			var handSize = that.hand.length;
+			var angleBetweenCards = UnoClientConfiguration.maxAngleBetweenCards;
+			if (handSize * angleBetweenCards > UnoClientConfiguration.maxHandAngle) {
+				angleBetweenCards = UnoClientConfiguration.maxHandAngle / handSize;
+			}
 
-		// When its this player's turn, then get the card suggestions
-		var cardSuggestions = null;
-		if (this.playerTurn === true) {
-			cardSuggestions = unoGameClient.cardSuggestions(this.hand);
-		}
+			// The angle used to rotate the system to the left-most card
+			var startAngle = (angleBetweenCards * ((handSize - 1) / 2 + 1));
 
-		// Start drawing the cards
-		push();
-		translate(handCenter.x, handCenter.y);
-		rotate(-startAngle); // For some weird reason, positive and negative angles are reversed in the P5 system
+			// Determine whether the player's cursor is in range to be over some of the cards
+			var cursorInRange = false;
+			var cursorAngle = 0;
+			var distance = p5.Vector.sub(handCenter, mousePosition).mag();
+			if ((mouseY < canvas.height)
+				&& (distance > (radius - UnoClientConfiguration.cardHeight / 2))
+				&& (distance < (radius + UnoClientConfiguration.cardHeight / 2))) {
+				cursorInRange = true;
 
-		for (var i = 0; i < handSize; ++i) {
+				var mouseCursorDirection = p5.Vector.sub(mousePosition, handCenter).normalize();
+				cursorAngle = acos(mouseCursorDirection.x);
 
-			push();
-			rotate(angleBetweenCards * i);
+				// Check in which "pie-slice" the cursor rests
+				for (var i = 0; i < handSize; ++i) {
+					var angle1 = startAngle + Math.PI / 2 - i * angleBetweenCards;
+					var angle2 = 0;
+					if (i < (handSize - 1)) {
+						angle2 = startAngle + Math.PI / 2 - (i + 1) * angleBetweenCards;
+					} else {
+						var finalAngle = atan2(UnoClientConfiguration.cardWidth, radius);
+						angle2 = startAngle + Math.PI / 2 - i * angleBetweenCards - finalAngle;
+					}
 
-			// When the player's cursor is within rang,
-			// then we check on which card the cursor rests,
-			// and highlight that card
-
-			if (cursorInRange) {
-
-				var angle1 = startAngle + Math.PI / 2 - i * angleBetweenCards;
-				var angle2 = 0;
-				if (i < (handSize - 1)) {
-					angle2 = startAngle + Math.PI / 2 - (i + 1) * angleBetweenCards;
-				} else {
-					var finalAngle = atan2(UnoClientConfiguration.cardWidth, radius);
-					angle2 = startAngle + Math.PI / 2 - i * angleBetweenCards - finalAngle;
+					if ((cursorAngle < angle1) && (cursorAngle > angle2)) {
+						that.state.card = i;
+					}
 				}
+			}
+		};
+		checkCursorOverHand();
 
-				if ((cursorAngle < angle1) && (cursorAngle > angle2)) {
+		// Get the card suggestions when its this player's turn
+		if (this.playerTurn === true) {
+			this.state.suggestions = unoGameClient.cardSuggestions(this.hand);
+		}
+	},
+	draw: function () {
+
+		var that = this;
+		var drawHand = function () {
+			// Some variables that will be used often
+			var radius = canvas.width / 4;
+			var mousePosition = createVector(mouseX, mouseY, 0);
+			var handCenter = createVector(canvas.width / 2, canvas.height + radius / 2, 0);
+
+			// Determine the angle between the different cards
+			var handSize = that.hand.length;
+			var angleBetweenCards = UnoClientConfiguration.maxAngleBetweenCards;
+			if (handSize * angleBetweenCards > UnoClientConfiguration.maxHandAngle) {
+				angleBetweenCards = UnoClientConfiguration.maxHandAngle / handSize;
+			}
+
+			// The angle used to rotate the system to the left-most card
+			var startAngle = (angleBetweenCards * ((handSize - 1) / 2 + 1));
+
+			// Start drawing the cards
+			push();
+			translate(handCenter.x, handCenter.y);
+			rotate(-startAngle); // For some weird reason, positive and negative angles are reversed in the P5 system
+
+			for (var i = 0; i < handSize; ++i) {
+
+				push();
+				rotate(angleBetweenCards * i);
+
+				// When the player's cursor over this card, then we let it slide out
+				if (that.state.card === i) {
 					translate(0, -(radius + UnoClientConfiguration.cardHeight / 1.2));
 				} else {
 					translate(0, -(radius + UnoClientConfiguration.cardHeight / 2));
 				}
 
-			} else {
-				translate(0, -(radius + UnoClientConfiguration.cardHeight / 2));
+				if ((that.playerTurn === true) && (that.state.suggestions[i] === false)) {
+					tint(255, 127);
+				}
+
+				image(that.hand[i].image);
+				pop();
 			}
 
-			if ((this.playerTurn === true) && (cardSuggestions[i] === false)) {
-				tint(255, 127);
-			}
-
-			image(this.hand[i].image);
 			pop();
-		}
+		};
+		var drawAvatar = function () {
+			push();
+			translate(canvas.width / 2, canvas.height - 20);
+			textSize(20);
+			fill(50);
+			text(this.name, 0, 0);
+			pop();
+		};
 
-		pop();
-	},
-	drawAvatar: function() {
-		push();
-		translate(canvas.width / 2, canvas.height - 20);
-		textSize(20);
-		fill(50);
-		text(this.name, 0, 0);
-		pop();
-	},
-	tick: function (deltaTime) {
-
-	},
-	draw: function () {
 		this.animator.draw();
-		this.drawHand();
-		this.drawAvatar();
+		drawHand();
+		drawAvatar();
+	},
+	resetState: function() {
+		this.state.card = null;
+		this.state.deck = null;
+		this.state.suggestions = new Array();
 	},
 
-	animator: null
+	animator: null,
+	state: null
 });
 
 // Representation of other players
@@ -248,85 +277,7 @@ var UnoOtherPlayer = UnoPlayer.extend({
 	constructor: function (side, id, name) {
 		this.base(id, name);
 		this.side = side;
-		this.animator = new UnoAnimator(this);
-	},
-	drawHand: function () {
-
-		var radius = canvas.width / 4;
-		var startAngle;
-		var handCenter;
-
-		switch (this.side) {
-			case "none":
-				handCenter = createVector(canvas.width / 2, canvas.height + radius / 2, 0);
-				startAngle = 0;
-				break;
-			case "top":
-				handCenter = createVector(canvas.width / 2, -radius / 2, 0);
-				startAngle = PI;
-				break;
-			case "left":
-				handCenter = createVector(-radius / 2, canvas.height / 2, 0);
-				startAngle = HALF_PI;
-				break;
-			case "right":
-				handCenter = createVector(canvas.width + radius / 2, canvas.height / 2, 0);
-				startAngle = PI + HALF_PI;
-				break;
-		}
-
-		// When the amount of cards * angle between cards exceeds the maxAngle,
-		// then each card is drawn closer to each other
-		var angleBetweenCards = UnoClientConfiguration.maxAngleBetweenCards;
-		if (this.hand * angleBetweenCards > UnoClientConfiguration.maxHandAngle) {
-			angleBetweenCards = UnoClientConfiguration.maxHandAngle / this.hand;
-		}
-
-		startAngle += (-angleBetweenCards * ((this.hand - 1) / 2 + 1));
-
-		// Draw the hand of the other player
-		// These cards are always with their back turned
-
-		push();
-		translate(handCenter.x, handCenter.y);
-		rotate(startAngle);
-
-		var backSideCard = unoGameClient.cards[unoGameClient.cards.length - 1];
-		for (var i = 0; i < this.hand; ++i) {
-
-			push();
-			rotate(angleBetweenCards * i);
-			translate(0, -(radius + UnoClientConfiguration.cardHeight / 2));
-			image(backSideCard.image);
-			pop();
-		}
-
-		pop();
-	},
-	drawAvatar: function () {
-
-		var center;
-		switch (this.side) {
-			case "none":
-				center = createVector(canvas.width / 2, canvas.height - 20, 0);
-				break;
-			case "top":
-				center = createVector(canvas.width / 2, 20, 0);
-				break;
-			case "left":
-				center = createVector(20, canvas.height / 2, 0);
-				break;
-			case "right":
-				center = createVector(canvas.width - 20, canvas.height / 2, 0);
-				break;
-		}
-
-		push();
-		translate(center.x, center.y);
-		textSize(20);
-		fill(50);
-		text(this.name, 0, 0);
-		pop();
+		this.animator = new UnoAnimator();
 	},
 	addCard: function () {
 		this.hand += 1;
@@ -342,9 +293,88 @@ var UnoOtherPlayer = UnoPlayer.extend({
 
 	},
 	draw: function () {
+
+		var that = this;
+		var drawHand = function () {
+			var radius = canvas.width / 4;
+			var startAngle;
+			var handCenter;
+
+			switch (that.side) {
+				case "none":
+					handCenter = createVector(canvas.width / 2, canvas.height + radius / 2, 0);
+					startAngle = 0;
+					break;
+				case "top":
+					handCenter = createVector(canvas.width / 2, -radius / 2, 0);
+					startAngle = PI;
+					break;
+				case "left":
+					handCenter = createVector(-radius / 2, canvas.height / 2, 0);
+					startAngle = HALF_PI;
+					break;
+				case "right":
+					handCenter = createVector(canvas.width + radius / 2, canvas.height / 2, 0);
+					startAngle = PI + HALF_PI;
+					break;
+			}
+
+			// When the amount of cards * angle between cards exceeds the maxAngle,
+			// then each card is drawn closer to each other
+			var angleBetweenCards = UnoClientConfiguration.maxAngleBetweenCards;
+			if (that.hand * angleBetweenCards > UnoClientConfiguration.maxHandAngle) {
+				angleBetweenCards = UnoClientConfiguration.maxHandAngle / that.hand;
+			}
+
+			startAngle += (-angleBetweenCards * ((that.hand - 1) / 2 + 1));
+
+			// Draw the hand of the other player
+			// These cards are always with their back turned
+
+			push();
+			translate(handCenter.x, handCenter.y);
+			rotate(startAngle);
+
+			var backSideCard = unoGameClient.cards[unoGameClient.cards.length - 1];
+			for (var i = 0; i < that.hand; ++i) {
+
+				push();
+				rotate(angleBetweenCards * i);
+				translate(0, -(radius + UnoClientConfiguration.cardHeight / 2));
+				image(backSideCard.image);
+				pop();
+			}
+
+			pop();
+		};
+		var drawAvatar = function () {
+			var center;
+			switch (that.side) {
+				case "none":
+					center = createVector(canvas.width / 2, canvas.height - 20, 0);
+					break;
+				case "top":
+					center = createVector(canvas.width / 2, 20, 0);
+					break;
+				case "left":
+					center = createVector(20, canvas.height / 2, 0);
+					break;
+				case "right":
+					center = createVector(canvas.width - 20, canvas.height / 2, 0);
+					break;
+			}
+
+			push();
+			translate(center.x, center.y);
+			textSize(20);
+			fill(50);
+			text(that.name, 0, 0);
+			pop();
+		};
+
 		this.animator.draw();
-		this.drawHand();
-		this.drawAvatar();
+		drawHand();
+		drawAvatar();
 		
 	},
 
@@ -354,8 +384,8 @@ var UnoOtherPlayer = UnoPlayer.extend({
 
 // Manages all Uno animations
 var UnoAnimator = Base.extend({
-	constructor: function (parent) {
-		this.parent = parent;
+	constructor: function () {
+		this.animations = new Array();
 	},
 	tick: function(deltaTime) {
 
@@ -364,20 +394,20 @@ var UnoAnimator = Base.extend({
 
 	},
 
-	parent: null
+	animations: null
 });
 
+// The heap of played Uno cards
 var UnoHeapClient = UnoHeap.extend({
 	constructor: function () {
 		this.cards = new Array();
-		this.animator = new UnoAnimator(this);
+		this.animator = new UnoAnimator();
 	},
 	addCard: function (card, color) {
 		this.base(card, color);
 		this.cards.push({ card: card.image, angle: radians(random(-45, 45)) });
 	},
 	tick: function(deltaTime) {
-
 	},
 	draw: function () {
 
@@ -403,12 +433,12 @@ var UnoHeapClient = UnoHeap.extend({
 });
 
 // Client which manages all communication with the server
+// and drawing the game onto the canvas
 var UnoGameClient = UnoGame.extend({
 	constructor: function () {
 		this.base();
 		this.cards = UnoCardsClient();
 		this.heap = new UnoHeapClient();
-		this.heapHistory = new Array();
 	},
 	receivedMessage: function (message) {
 

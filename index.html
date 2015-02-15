@@ -50,12 +50,12 @@
 
             unoGameClient.players = new Array(4);
             unoGameClient.players[0] = new UnoThisPlayer(0, "Jan");
-            unoGameClient.players[1] = new UnoOtherPlayer(UnoOtherPlayerLocations.left, 0, "Jef");
-            unoGameClient.players[2] = new UnoOtherPlayer(UnoOtherPlayerLocations.top, 0, "Kak");
-            unoGameClient.players[3] = new UnoOtherPlayer(UnoOtherPlayerLocations.right, 0, "Kut");
+            unoGameClient.players[1] = new UnoOtherPlayer(UnoOtherPlayerLocations.left, 0, "Wim");
+            unoGameClient.players[2] = new UnoOtherPlayer(UnoOtherPlayerLocations.top, 0, "Vince");
+            unoGameClient.players[3] = new UnoOtherPlayer(UnoOtherPlayerLocations.right, 0, "Boerelul");
 
             // Hands of the players
-            unoGameClient.players[0].playerTurn = false;
+            unoGameClient.players[0].playerTurn = true;
             unoGameClient.players[0].hand = new Array(10);
             var thisPlayerHand = unoGameServer.takeCards(10);
             for (var i = 0; i < 10; ++i) {
