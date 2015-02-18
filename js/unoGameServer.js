@@ -1,63 +1,5 @@
 /// <reference path="unoGameShared.js" />
 
-// Creates a list of all available cards in Uno. (This is not a deck of Uno cards!)
-var UnoCardsServer = function () {
-	var cards = new Array(55);
-
-	// red value cards
-	var offset = 0;
-	for (var i = 0; i < 10; ++i) {
-		cards[i + offset] = new UnoCard(UnoColors.red, UnoCardTypes.value, i);
-	}
-
-	// green value cards
-	offset += 10;
-	for (var i = 0; i < 10; ++i) {
-		cards[i + offset] = new UnoCard(UnoColors.green, UnoCardTypes.value, i);
-	}
-
-	// blue value cards
-	offset += 10;
-	for (var i = 0; i < 10; ++i) {
-		cards[i + offset] = new UnoCard(UnoColors.blue, UnoCardTypes.value, i);
-	}
-
-	// yellow value cards
-	offset += 10;
-	for (var i = 0; i < 10; ++i) {
-		cards[i + offset] = new UnoCard(UnoColors.yellow, UnoCardTypes.value, i);
-	}
-
-	// skip cards
-	offset += 10;
-	cards[offset] = new UnoCard(UnoColors.red, UnoCardTypes.skip, 20);
-	cards[offset + 1] = new UnoCard(UnoColors.green, UnoCardTypes.skip, 20);
-	cards[offset + 2] = new UnoCard(UnoColors.blue, UnoCardTypes.skip, 20);
-	cards[offset + 3] = new UnoCard(UnoColors.yellow, UnoCardTypes.skip, 20);
-
-	// reverse cards
-	offset += 4;
-	cards[offset] = new UnoCard(UnoColors.red, UnoCardTypes.reverse, 20);
-	cards[offset + 1] = new UnoCard(UnoColors.green, UnoCardTypes.reverse, 20);
-	cards[offset + 2] = new UnoCard(UnoColors.blue, UnoCardTypes.reverse, 20);
-	cards[offset + 3] = new UnoCard(UnoColors.yellow, UnoCardTypes.reverse, 20);
-
-	// plus 2 cards
-	offset += 4;
-	cards[offset] = new UnoCard(UnoColors.red, UnoCardTypes.plus2, 20);
-	cards[offset + 1] = new UnoCard(UnoColors.green, UnoCardTypes.plus2, 20);
-	cards[offset + 2] = new UnoCard(UnoColors.blue, UnoCardTypes.plus2, 20);
-	cards[offset + 3] = new UnoCard(UnoColors.yellow, UnoCardTypes.plus2, 20);
-
-	// plus 4 and color change cards
-	offset += 4;
-	cards[offset] = new UnoCard(UnoColors.neutral, UnoCardTypes.plus4, 50);
-	cards[offset + 1] = new UnoCard(UnoColors.neutral, UnoCardTypes.colorChange, 50);
-	cards[offset + 2] = new UnoCard(UnoColors.neutral, UnoCardTypes.back, 0);
-
-	return cards;
-};
-
 // Creates a list of indices, representing a shuffled deck.
 var UnoDeck = function (shuffleArray) {
 
@@ -108,16 +50,11 @@ var shuffle = function (array) {
 var UnoGameServer = UnoGame.extend({
 	constructor: function () {
 		this.base();
-		this.cards = UnoHeap();
+		this.cards = UnoCards();
 		this.deck = UnoDeck(true);
 		this.heap = new UnoHeap();
 	},
 	takeCards: function (amount) {
-
-		if (typeof amount !== "number") {
-			console.error("Type of amount is not a number");
-			return;
-		}
 
 		var cards = new Array(amount);
 		for (var i = 0; i < amount; ++i) {

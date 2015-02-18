@@ -18,9 +18,6 @@
 
         // Called before initialization
         function preload() {
-            UnoCardsTileset = loadImage("img/unocards.png");
-            UnoDeckSprite = loadImage("img/unodeck.png");
-            UnoDeckHighlightSprite = loadImage("img/unodeck_highlight.png");
         };
 
         // Called when the document has been loaded and preload has been completed.
@@ -41,10 +38,10 @@
             // The first card on the heap
             var heap = unoGameServer.takeCards(6);
             for (var i = 0; i < heap.length; ++i) {
-                if (unoGameClient.cards[heap[i]].color === UnoColors.neutral) {
-                    unoGameClient.heap.addCard(unoGameClient.cards[heap[i]], UnoColors.red);
+                if (unoGameClient.deck.cards[heap[i]].color === UnoColors.neutral) {
+                    unoGameClient.heap.addCard(unoGameClient.deck.cards[heap[i]], UnoColors.red);
                 } else {
-                    unoGameClient.heap.addCard(unoGameClient.cards[heap[i]]);
+                    unoGameClient.heap.addCard(unoGameClient.deck.cards[heap[i]]);
                 }
             }
 
@@ -59,9 +56,9 @@
             unoGameClient.players[0].hand = new Array(10);
             var thisPlayerHand = unoGameServer.takeCards(10);
             for (var i = 0; i < 10; ++i) {
-                unoGameClient.players[0].hand[i] = unoGameClient.cards[thisPlayerHand[i]];
+                unoGameClient.players[0].hand[i] = unoGameClient.deck.cards[thisPlayerHand[i]];
             }
-            unoGameClient.players[0].hand.sort(UnoCardComparison);
+            unoGameClient.players[0].hand.sort(UnoCard.prototype.compare);
 
             unoGameClient.players[1].hand = 7;
             unoGameClient.players[2].hand = 9;
@@ -71,7 +68,7 @@
 
         // Called every frame
         function draw() {
-            background(255, 204, 0);
+            resetMatrix();
             unoGameClient.tick();
             unoGameClient.draw();
         };

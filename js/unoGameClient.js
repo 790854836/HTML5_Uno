@@ -3,25 +3,27 @@
 
 // The images used in Uno
 var UnoCardsTileset = null;
-var UnoDeckSprite = null;
-var UnoDeckHighlightSprite = null;
 
 // Configuration values relevant to the client
 var UnoClientConfiguration = {
 	maxHandAngle: Math.PI / 180 * 75,
 	maxAngleBetweenCards: Math.PI / 15,
 	cardWidth: 86,
-	cardHeight: 128
+	cardHeight: 128,
+	deckWidth: 216,
+	deckHeight: 180,
+	avatarWidth: 64,
+	avatarHeight: 64
 };
 
 // Vertical offset values for the tileset of images
-var UnoColorYOffset = {
-	red: 0 * UnoClientConfiguration.cardHeight,
-	blue: 2 * UnoClientConfiguration.cardHeight,
-	green: 1 * UnoClientConfiguration.cardHeight,
-	yellow: 3 * UnoClientConfiguration.cardHeight,
-	neutral: 4 * UnoClientConfiguration.cardHeight
-};
+var UnoColorYOffset = [
+	0 * UnoClientConfiguration.cardHeight,	// Red
+	1 * UnoClientConfiguration.cardHeight,	// Green
+	2 * UnoClientConfiguration.cardHeight,	// Blue
+	3 * UnoClientConfiguration.cardHeight,	// Yellow
+	4 * UnoClientConfiguration.cardHeight	// Neutral
+];
 
 // Locations where player hands are drawn
 var UnoOtherPlayerLocations = {
@@ -48,82 +50,33 @@ if (typeof p5.Vector.prototype.get !== 'function') {
 	};
 }
 
-// Creates a list of all available cards in Uno. (This is not a deck of Uno cards!)
-var UnoCardsClient = function () {
-	var cards = new Array(55);
+// Takes the list of cards, and adds an image property to them.
+var UnoCardsClient = function (tileset, cards) {
 
-	// red value cards
-	var offset = 0;
-	var tileOffset = [0, 0];
-	for (var i = 0; i < 10; ++i) {
-		tileOffset = [i * UnoClientConfiguration.cardWidth, UnoColorYOffset.red];
-		cards[i + offset] = new UnoCardClient(UnoColors.red, UnoCardTypes.value, i, tileOffset);
+	var offset = [0, 0];
+	var cardIndex = 0;
+
+	var addImageToCard = function (offset) {
+		cards[cardIndex]["image"] = tileset.get(offset[0], offset[1], UnoClientConfiguration.cardWidth, UnoClientConfiguration.cardHeight);
+		++cardIndex;
+	};
+
+	// Color cards first
+	for (var color = 0; color < UnoColors.length - 1; ++color) {
+
+		offset[1] = UnoColorYOffset[color];
+		for (var value = 0; value < 13; ++value) {
+			offset[0] = value * UnoClientConfiguration.cardWidth;
+			addImageToCard(offset);
+		}
 	}
 
-	// green value cards
-	offset += 10;
-	for (var i = 0; i < 10; ++i) {
-		tileOffset = [i * UnoClientConfiguration.cardWidth, UnoColorYOffset.green];
-		cards[i + offset] = new UnoCardClient(UnoColors.green, UnoCardTypes.value, i, tileOffset);
+	// Neutral cards
+	offset[1] = UnoColorYOffset[UnoColors.length - 1];
+	for (var i = 0; i < 3; ++i) {
+		offset[0] = i * UnoClientConfiguration.cardWidth;
+		addImageToCard(offset);
 	}
-
-	// blue value cards
-	offset += 10;
-	for (var i = 0; i < 10; ++i) {
-		tileOffset = [i * UnoClientConfiguration.cardWidth, UnoColorYOffset.blue];
-		cards[i + offset] = new UnoCardClient(UnoColors.blue, UnoCardTypes.value, i, tileOffset);
-	}
-
-	// yellow value cards
-	offset += 10;
-	for (var i = 0; i < 10; ++i) {
-		tileOffset = [i * UnoClientConfiguration.cardWidth, UnoColorYOffset.yellow];
-		cards[i + offset] = new UnoCardClient(UnoColors.yellow, UnoCardTypes.value, i, tileOffset);
-	}
-
-	// skip cards
-	offset += 10;
-	tileOffset = [10 * UnoClientConfiguration.cardWidth, UnoColorYOffset.red];
-	cards[offset] = new UnoCardClient(UnoColors.red, UnoCardTypes.skip, 20, tileOffset);
-	tileOffset = [10 * UnoClientConfiguration.cardWidth, UnoColorYOffset.green];
-	cards[offset + 1] = new UnoCardClient(UnoColors.green, UnoCardTypes.skip, 20, tileOffset);
-	tileOffset = [10 * UnoClientConfiguration.cardWidth, UnoColorYOffset.blue];
-	cards[offset + 2] = new UnoCardClient(UnoColors.blue, UnoCardTypes.skip, 20, tileOffset);
-	tileOffset = [10 * UnoClientConfiguration.cardWidth, UnoColorYOffset.yellow];
-	cards[offset + 3] = new UnoCardClient(UnoColors.yellow, UnoCardTypes.skip, 20, tileOffset);
-
-	// reverse cards
-	offset += 4;
-	tileOffset = [11 * UnoClientConfiguration.cardWidth, UnoColorYOffset.red];
-	cards[offset] = new UnoCardClient(UnoColors.red, UnoCardTypes.reverse, 20, tileOffset);
-	tileOffset = [11 * UnoClientConfiguration.cardWidth, UnoColorYOffset.green];
-	cards[offset + 1] = new UnoCardClient(UnoColors.green, UnoCardTypes.reverse, 20, tileOffset);
-	tileOffset = [11 * UnoClientConfiguration.cardWidth, UnoColorYOffset.blue];
-	cards[offset + 2] = new UnoCardClient(UnoColors.blue, UnoCardTypes.reverse, 20, tileOffset);
-	tileOffset = [11 * UnoClientConfiguration.cardWidth, UnoColorYOffset.yellow];
-	cards[offset + 3] = new UnoCardClient(UnoColors.yellow, UnoCardTypes.reverse, 20, tileOffset);
-
-	// plus 2 cards
-	offset += 4;
-	tileOffset = [12 * UnoClientConfiguration.cardWidth, UnoColorYOffset.red];
-	cards[offset] = new UnoCardClient(UnoColors.red, UnoCardTypes.plus2, 20, tileOffset);
-	tileOffset = [12 * UnoClientConfiguration.cardWidth, UnoColorYOffset.green];
-	cards[offset + 1] = new UnoCardClient(UnoColors.green, UnoCardTypes.plus2, 20, tileOffset);
-	tileOffset = [12 * UnoClientConfiguration.cardWidth, UnoColorYOffset.blue];
-	cards[offset + 2] = new UnoCardClient(UnoColors.blue, UnoCardTypes.plus2, 20, tileOffset);
-	tileOffset = [12 * UnoClientConfiguration.cardWidth, UnoColorYOffset.yellow];
-	cards[offset + 3] = new UnoCardClient(UnoColors.yellow, UnoCardTypes.plus2, 20, tileOffset);
-
-	// plus 4 and color change cards
-	offset += 4;
-	tileOffset = [UnoClientConfiguration.cardWidth, UnoColorYOffset.neutral];
-	cards[offset] = new UnoCardClient(UnoColors.neutral, UnoCardTypes.plus4, 50, tileOffset);
-	tileOffset = [0, UnoColorYOffset.neutral];
-	cards[offset + 1] = new UnoCardClient(UnoColors.neutral, UnoCardTypes.colorChange, 50, tileOffset);
-	tileOffset = [2 * UnoClientConfiguration.cardWidth, UnoColorYOffset.neutral];
-	cards[offset + 2] = new UnoCardClient(UnoColors.neutral, UnoCardTypes.back, 0, tileOffset);
-
-	return cards;
 };
 
 // Representation of an Uno card
@@ -207,6 +160,7 @@ var UnoThisPlayer = UnoPlayer.extend({
 
 		var that = this;
 		var drawHand = function () {
+
 			// Some variables that will be used often
 			var radius = canvas.width / 4;
 			var mousePosition = createVector(mouseX, mouseY, 0);
@@ -243,18 +197,24 @@ var UnoThisPlayer = UnoPlayer.extend({
 					tint(255, 127);
 				}
 
-				image(that.hand[i].image);
+				if (that.hand[i].image != null) {
+					image(that.hand[i].image);
+				} else {
+					fill(127);
+					rect(0, 0, UnoClientConfiguration.cardWidth, UnoClientConfiguration.cardHeight);
+				}
 				pop();
 			}
 
 			pop();
 		};
 		var drawAvatar = function () {
+			var center = createVector((canvas.width - UnoClientConfiguration.avatarWidth) / 2, canvas.height - 10 - UnoClientConfiguration.avatarHeight, 0);
 			push();
-			translate(canvas.width / 2, canvas.height - 20);
-			textSize(20);
+			translate(center.x, center.y);
+			
 			fill(50);
-			text(this.name, 0, 0);
+			rect(0, 0, UnoClientConfiguration.avatarWidth, UnoClientConfiguration.avatarHeight);
 			pop();
 		};
 
@@ -296,6 +256,7 @@ var UnoOtherPlayer = UnoPlayer.extend({
 
 		var that = this;
 		var drawHand = function () {
+
 			var radius = canvas.width / 4;
 			var startAngle;
 			var handCenter;
@@ -335,23 +296,30 @@ var UnoOtherPlayer = UnoPlayer.extend({
 			translate(handCenter.x, handCenter.y);
 			rotate(startAngle);
 
-			var backSideCard = unoGameClient.cards[unoGameClient.cards.length - 1];
+			var cards = unoGameClient.deck.cards;
+			var backSideCard = cards[cards.length - 1].image;
 			for (var i = 0; i < that.hand; ++i) {
 
 				push();
 				rotate(angleBetweenCards * i);
 				translate(0, -(radius + UnoClientConfiguration.cardHeight / 2));
-				image(backSideCard.image);
+
+				if (backSideCard != null) {
+					image(backSideCard);
+				} else {
+					fill(127);
+					rect(0, 0, UnoClientConfiguration.cardWidth, UnoClientConfiguration.cardHeight);
+				}
 				pop();
 			}
 
 			pop();
 		};
 		var drawAvatar = function () {
-			var center;
+			var handcenter;
 			switch (that.side) {
 				case "none":
-					center = createVector(canvas.width / 2, canvas.height - 20, 0);
+					center = createVector((canvas.width - UnoClientConfiguration.avatarWidth) / 2, canvas.height - 10 - UnoClientConfiguration.avatarHeight, 0);
 					break;
 				case "top":
 					center = createVector(canvas.width / 2, 20, 0);
@@ -366,9 +334,8 @@ var UnoOtherPlayer = UnoPlayer.extend({
 
 			push();
 			translate(center.x, center.y);
-			textSize(20);
-			fill(50);
-			text(that.name, 0, 0);
+
+			
 			pop();
 		};
 
@@ -405,7 +372,7 @@ var UnoHeapClient = UnoHeap.extend({
 	},
 	addCard: function (card, color) {
 		this.base(card, color);
-		this.cards.push({ card: card.image, angle: radians(random(-45, 45)) });
+		this.cards.push({ card: card, angle: radians(random(-45, 45)) });
 	},
 	tick: function(deltaTime) {
 	},
@@ -421,7 +388,14 @@ var UnoHeapClient = UnoHeap.extend({
 			push();
 			rotate(this.cards[i].angle);
 			translate(-UnoClientConfiguration.cardWidth / 2, -UnoClientConfiguration.cardHeight / 2);
-			image(this.cards[i].card);
+
+			if (this.cards[i].card.image != null) {
+				image(this.cards[i].card.image);
+			} else {
+				fill(127);
+				rect(0, 0, UnoClientConfiguration.cardWidth, UnoClientConfiguration.cardHeight);
+			}
+
 			pop();
 		}
 
@@ -432,13 +406,78 @@ var UnoHeapClient = UnoHeap.extend({
 	animator: null
 });
 
+// A visual representation of the deck of cards.
+// Does not contain any information about the sequence of cards in the deck (=> server only!!!)
+var UnoDeckClient = Base.extend({
+	constructor: function () {
+		
+		var that = this;
+		this.cards = UnoCards();
+	
+		loadImage("img/unodeck.png", function (image) {
+			that.deckSprite = image;
+		});
+		loadImage("img/unodeck_highlight.png", function (image) {
+			that.deckHighlightSprite = image;
+		});
+		loadImage("img/unocards.png", function (image) {
+			that.cardsSprite = image;
+			UnoCardsClient(image, that.cards);
+		});
+		
+		this.cursorOverDeck = false;
+	},
+	tick: function (deltaTime) {
+
+		if ((this.deckSprite === null) || (this.deckHighlightSprite === null)) {
+			return;
+		}
+
+		var deckLocation = createVector(canvas.width / 4, (canvas.height - this.deckSprite.height) / 2, 1);
+
+		if ((mouseX > deckLocation.x) && (mouseX < deckLocation.x + this.deckSprite.width)
+			&& (mouseY > deckLocation.y) && (mouseY < deckLocation.y + this.deckSprite.height)) {
+			this.cursorOverDeck = true;
+		} else {
+			this.cursorOverDeck = false;
+		}
+	},
+	draw: function() {
+		push();
+
+		var deckLocation = createVector(canvas.width / 4, (canvas.height - UnoClientConfiguration.deckHeight) / 2, 1);
+		translate(deckLocation.x, deckLocation.y);
+
+		if ((this.deckSprite != null) && (this.deckHighlightSprite != null)) {
+
+			if (this.cursorOverDeck === true) {
+				image(this.deckHighlightSprite);
+			} else {
+				image(this.deckSprite);
+			}
+
+		} else {
+			fill(127);
+			rect(0, 0, UnoClientConfiguration.deckWidth, UnoClientConfiguration.deckHeight);
+		}
+
+		pop();
+	},
+
+	cards: null,
+	cardsSprite: null,
+	deckSprite: null,
+	deckHighlightSprite: null,
+	cursorOverDeck: false
+});
+
 // Client which manages all communication with the server
 // and drawing the game onto the canvas
 var UnoGameClient = UnoGame.extend({
 	constructor: function () {
 		this.base();
-		this.cards = UnoCardsClient();
 		this.heap = new UnoHeapClient();
+		this.deck = new UnoDeckClient();
 	},
 	receivedMessage: function (message) {
 
@@ -447,6 +486,9 @@ var UnoGameClient = UnoGame.extend({
 		for (var i = 0; i < this.players.length; ++i) {
 			this.players[i].tick(deltaTime);
 		}
+
+		this.heap.tick(deltaTime);
+		this.deck.tick(deltaTime);
 	},
 	draw: function () {
 		background(255, 204, 0);
@@ -456,23 +498,10 @@ var UnoGameClient = UnoGame.extend({
 		}
 
 		this.heap.draw();
-
-		// Draw deck
-		push();
-		var deckLocation = createVector(canvas.width / 4, (canvas.height - UnoDeckSprite.height) / 2, 1);
-		translate(deckLocation.x, deckLocation.y);
-
-		if ((mouseX > deckLocation.x) && (mouseX < deckLocation.x + UnoDeckSprite.width)
-			&& (mouseY > deckLocation.y) && (mouseY < deckLocation.y + UnoDeckSprite.height)) {
-			image(UnoDeckHighlightSprite);
-		} else {
-			image(UnoDeckSprite);
-		}
-		pop();
-
-		
+		this.deck.draw();
 		
 	},
 
-	cards: null,
+	heap: null,
+	deck: null
 });
