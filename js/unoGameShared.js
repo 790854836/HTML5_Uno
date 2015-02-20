@@ -20,11 +20,15 @@ var UnoCardTypes = [
 
 // Different message codes between client and server
 var UnoMessageCodes = [
-	"gameLoaded",
-	"gameStart",
-	"gameEnd",
-	"playCard",
-	"playerDisconnect"
+	"changeGameState",
+	"gameSetup"
+];
+
+// Different states the game can be in
+var UnoGameStates = [
+	"starting",
+	"playing",
+	"ended"
 ];
 
 // Base class for all of the Uno cards.
@@ -58,8 +62,8 @@ var UnoCards = function () {
 
 
 	// plus 4 and color change cards
-	cards[color * 13] = new UnoCard(UnoColors[4], UnoCardTypes[5], 50);
-	cards[color * 13 + 1] = new UnoCard(UnoColors[4], UnoCardTypes[6], 50);
+	cards[color * 13] = new UnoCard(UnoColors[4], UnoCardTypes[6], 50);
+	cards[color * 13 + 1] = new UnoCard(UnoColors[4], UnoCardTypes[5], 50);
 	cards[color * 13 + 2] = new UnoCard(UnoColors[4], UnoCardTypes[0], 0);
 
 	return cards;
@@ -149,7 +153,9 @@ var UnoHeap = Base.extend({
 // Base class for managing the game.
 var UnoGame = Base.extend({
 	constructor: function () {
+		this.state = UnoGameStates[0];
 		this.heap = new UnoHeap();
+		this.players = new Array();
 	},
 	setPlayers: function (players, currentPlayerIndex) {
 		this.players = players;
@@ -182,7 +188,8 @@ var UnoGame = Base.extend({
 		return suggestions;
 	},
 	
-	heap: null,		// The current card on top of the heap
-	players: null,	// List of players
-	currentPlayerIndex: 0	// Index of the player currently on turn
+	state: UnoGameStates[0],	// State of the current game
+	heap: null,					// The current card on top of the heap
+	players: null,				// List of players
+	currentPlayerIndex: 0,		// Index of the player currently on turn
 });

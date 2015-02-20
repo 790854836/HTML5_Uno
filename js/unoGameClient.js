@@ -26,29 +26,12 @@ var UnoColorYOffset = [
 ];
 
 // Locations where player hands are drawn
-var UnoOtherPlayerLocations = {
-	none: "none",
-	left: "left",
-	top: "top",
-	right: "right"
-};
-
-// TODO: remove this when fixed
-// Bug in p5, where the vector.get function is called,
-// but the function is actually called 'copy', so we need to add this, in case it isn;t there
-if (typeof p5.Vector.prototype.get !== 'function') {
-	p5.Vector.prototype.get = function () {
-		if (this.p5) {
-			return new p5.Vector(this.p5, [
-			  this.x,
-			  this.y,
-			  this.z
-			]);
-		} else {
-			return new p5.Vector(this.x, this.y, this.z);
-		}
-	};
-}
+var UnoOtherPlayerLocations = [
+	"none",
+	"left",
+	"top",
+	"right"
+];
 
 // Takes the list of cards, and adds an image property to them.
 var UnoCardsClient = function (tileset, cards) {
@@ -79,22 +62,12 @@ var UnoCardsClient = function (tileset, cards) {
 	}
 };
 
-// Representation of an Uno card
-var UnoCardClient = UnoCard.extend({
-	constructor: function (color, type, weight, offset) {
-		this.base(color, type, weight);
-		this.image = UnoCardsTileset.get(offset[0], offset[1], UnoClientConfiguration.cardWidth, UnoClientConfiguration.cardHeight);
-	},
-
-	image: null
-});
-
 // Representation of the current player
 var UnoThisPlayer = UnoPlayer.extend({
 	constructor: function (id, name) {
 		this.base(id, name);
+		this.hand = new Array();
 		this.animator = new UnoAnimator();
-		this.state = {};
 		this.resetState();
 	},
 	tick: function (deltaTime) {
@@ -149,7 +122,18 @@ var UnoThisPlayer = UnoPlayer.extend({
 				}
 			}
 		};
+		var checkCursorOverDeck = function () {
+			var deckLocation = createVector(canvas.width / 4, (canvas.height - UnoClientConfiguration.deckHeight) / 2, 1);
+
+			if ((mouseX > deckLocation.x) && (mouseX < deckLocation.x + UnoClientConfiguration.deckWidth)
+				&& (mouseY > deckLocation.y) && (mouseY < deckLocation.y + UnoClientConfiguration.deckHeight)) {
+				that.state.deck = true;
+			} else {
+				that.state.deck = false;
+			}
+		};
 		checkCursorOverHand();
+		checkCursorOverDeck();
 
 		// Get the card suggestions when its this player's turn
 		if (this.playerTurn === true) {
@@ -229,13 +213,18 @@ var UnoThisPlayer = UnoPlayer.extend({
 	},
 
 	animator: null,
-	state: null
+	state: {
+		card: null,
+		deck: null,
+		suggestions: null
+	}
 });
 
 // Representation of other players
 var UnoOtherPlayer = UnoPlayer.extend({
 	constructor: function (side, id, name) {
 		this.base(id, name);
+		this.hand = 0;
 		this.side = side;
 		this.animator = new UnoAnimator();
 	},
@@ -428,19 +417,7 @@ var UnoDeckClient = Base.extend({
 		this.cursorOverDeck = false;
 	},
 	tick: function (deltaTime) {
-
-		if ((this.deckSprite === null) || (this.deckHighlightSprite === null)) {
-			return;
-		}
-
-		var deckLocation = createVector(canvas.width / 4, (canvas.height - this.deckSprite.height) / 2, 1);
-
-		if ((mouseX > deckLocation.x) && (mouseX < deckLocation.x + this.deckSprite.width)
-			&& (mouseY > deckLocation.y) && (mouseY < deckLocation.y + this.deckSprite.height)) {
-			this.cursorOverDeck = true;
-		} else {
-			this.cursorOverDeck = false;
-		}
+		
 	},
 	draw: function() {
 		push();
@@ -450,7 +427,7 @@ var UnoDeckClient = Base.extend({
 
 		if ((this.deckSprite != null) && (this.deckHighlightSprite != null)) {
 
-			if (this.cursorOverDeck === true) {
+			if (unoGameClient.thisPlayer.state.deck === true) {
 				image(this.deckHighlightSprite);
 			} else {
 				image(this.deckSprite);
@@ -467,8 +444,7 @@ var UnoDeckClient = Base.extend({
 	cards: null,
 	cardsSprite: null,
 	deckSprite: null,
-	deckHighlightSprite: null,
-	cursorOverDeck: false
+	deckHighlightSprite: null
 });
 
 // Client which manages all communication with the server
@@ -479,29 +455,127 @@ var UnoGameClient = UnoGame.extend({
 		this.heap = new UnoHeapClient();
 		this.deck = new UnoDeckClient();
 	},
-	receivedMessage: function (message) {
+	receivedMessage: function (event) {
 
-	},
-	tick: function(deltaTime) {
-		for (var i = 0; i < this.players.length; ++i) {
-			this.players[i].tick(deltaTime);
+		var that = this;
+		var msg = JSON.parse(event.data);
+
+		// Changes the game state
+		var processGameStateChange = function (msg) {
+			that.state = msg;
+		};
+
+		// Creates the different players,
+		// Assigns the cards shuffled by the server,
+		// and assigns the sequence of players
+		var processGameSetup = function (msg, currentPlayerIndex) {
+
+			// Player info structure:
+			// [id, name, hand]
+
+			for (var i = 0; i < msg.length; ++i) {
+
+				var playerInfo = msg[i];
+				var player = null;
+				if (i === 0) {
+					player = new UnoThisPlayer(playerInfo[0], playerInfo[1]);
+					
+					// Find this player's cards
+					for (var j = 0; j < playerInfo[2].length; ++j) {
+						player.hand.push(that.deck.cards[playerInfo[2][j]]);
+					}
+
+					player.hand.sort(UnoCard.prototype.compare);
+					that.thisPlayer = player;
+
+				} else {
+					player = new UnoOtherPlayer(UnoOtherPlayerLocations[i], playerInfo[0], playerInfo[1]);
+					player.hand = playerInfo[2];
+				}
+
+				player.playerTurn = false;
+				that.players.push(player);
+
+			}
+
+			that.currentPlayerIndex = currentPlayerIndex;
+			that.players[currentPlayerIndex].playerTurn = true;
+
+		};
+
+		switch (msg[0]) {
+			case UnoMessageCodes[0]:
+				processGameStateChange(msg[1]);
+				break;
+			case UnoMessageCodes[1]:
+				processGameSetup(msg[1], msg[2]);
+				break;
 		}
 
-		this.heap.tick(deltaTime);
-		this.deck.tick(deltaTime);
+	},
+	sendMessage: function (msg) {
+
+	},
+	tick: function (deltaTime) {
+
+		switch (this.state) {
+			case UnoGameStates[0]:
+
+				break;
+			case UnoGameStates[1]:
+
+				for (var i = 0; i < this.players.length; ++i) {
+					this.players[i].tick(deltaTime);
+				}
+
+				this.heap.tick(deltaTime);
+				this.deck.tick(deltaTime);
+
+				break;
+		}
+
+		
 	},
 	draw: function () {
 		background(255, 204, 0);
 
-		for (var i = 0; i < this.players.length; ++i) {
-			this.players[i].draw();
+		switch (this.state) {
+			case UnoGameStates[0]:
+				fill(127);
+				textSize(32);
+				text("Waiting for other players...", canvas.width / 2, canvas.height / 2);
+				break;
+			case UnoGameStates[1]:
+				for (var i = 0; i < this.players.length; ++i) {
+					this.players[i].draw();
+				}
+
+				this.heap.draw();
+				this.deck.draw();
+				break;
+			case UnoGameStates[2]:
+
+				break;
+		}
+		
+	},
+	mouseClicked: function() {
+
+		if ((this.thisPlayer.playerTurn === true) && (this.currentPlayerIndex === 0)) {
+
+			// Check whether he clicked either on the deck, or a certain card
+			if (this.thisPlayer.state.deck === true) {
+				console.log("clicked deck");
+			} else if (this.thisPlayer.state.card !== null) {
+				console.log("clicked on card " + JSON.stringify(this.thisPlayer.state.card));
+			}
+
 		}
 
-		this.heap.draw();
-		this.deck.draw();
-		
+		return false;
 	},
 
 	heap: null,
-	deck: null
+	deck: null,
+	thisPlayer: null
 });

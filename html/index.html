@@ -1,0 +1,82 @@
+﻿<!doctype html>
+<html class="no-js" lang="">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title></title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <script src="js/p5.js"></script>
+    <script src="js/base.js"></script>
+    <script src="js/unoGameShared.js"></script>
+    <script src="js/unoGameClient.js"></script>
+    <script src="js/unoGameServer.js"></script>
+    <script>
+        var unoGameClient, unoGameServer;
+
+        // Called before initialization
+        function preload() {
+        };
+
+        // Called when the document has been loaded and preload has been completed.
+        function setup() {
+            // Uno playfield initialization and general p5 setup
+            devicePixelScaling(false);
+            createCanvas(1024, 768);
+            smooth();
+            frameRate(30);
+            imageMode(CORNER);
+            rectMode(CORNER);
+            angleMode(RADIANS);
+            textAlign(CENTER, CENTER);
+
+            unoGameServer = new UnoGameServer();
+            unoGameClient = new UnoGameClient();
+            
+
+            // The first card on the heap
+            var heap = unoGameServer.takeCards(6);
+            for (var i = 0; i < heap.length; ++i) {
+                if (unoGameClient.deck.cards[heap[i]].color === UnoColors[4]) {
+                    unoGameClient.heap.addCard(unoGameClient.deck.cards[heap[i]], UnoColors[0]);
+                } else {
+                    unoGameClient.heap.addCard(unoGameClient.deck.cards[heap[i]]);
+                }
+            }
+
+            // Generate player data and emulate an event
+            var playerHand = unoGameServer.takeCards(7);
+            var msgData = [UnoMessageCodes[1], [[0, "Jan", playerHand], [1, "Wim", 7], [2, "Vince", 7], [3, "Keke", 7]], 0];
+            var event = new Object();
+            event.data = JSON.stringify(msgData);
+
+            unoGameClient.receivedMessage(event);
+
+            // Set the game to play state
+            msgData = [UnoMessageCodes[0], UnoGameStates[1]];
+            event.data = JSON.stringify(msgData);
+
+            unoGameClient.receivedMessage(event);
+
+        };
+
+        // Called every frame
+        function draw() {
+            resetMatrix();
+            unoGameClient.tick();
+            unoGameClient.draw();
+        };
+
+        function mouseClicked() {
+            
+            if (unoGameClient != null) {
+                unoGameClient.mouseClicked();
+            }
+
+            return false;
+        };
+    </script>
+</body>
+</html>
