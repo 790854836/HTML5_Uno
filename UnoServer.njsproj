@@ -52,7 +52,7 @@
     <Compile Include="js\forEach.js" />
     <Compile Include="js\p5.js" />
     <Compile Include="js\unoGameClient.js" />
-    <Compile Include="js\unoGameServer.js" />
+    <Compile Include="server\unoGameServer.js" />
     <Compile Include="js\unoGameShared.js" />
     <Compile Include="server\webRequestHandler.js" />
     <Compile Include="server\webRouter.js" />
